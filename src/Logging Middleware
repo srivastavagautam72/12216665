@@ -1,1 +1,31 @@
 
+Redirect
+app.get('/:shortcode', async (req, res) => {
+  const { shortcode } = req.params;
+  const short = await ShortURL.findOne({ shortcode });
+  if (!short) return res.status(404).json({ error: 'Not found' });
+  if (short.expiry < new Date()) return res.status(410).json({ error: 'Expired' });
+  short.clicks.push({
+    timestamp: new Date(),
+    referrer: req.get('Referrer') || '',
+    geo: req.ip,
+  });
+  await short.save();
+  res.redirect(short.originalURL);
+});
+
+// Stats
+app.get('/shorturls/:shortcode', async (req, res) => {
+  const { shortcode } = req.params;
+  const short = await ShortURL.findOne({ shortcode });
+  if (!short) return res.status(404).json({ error: 'Not found' });
+  res.json({
+    originalURL: short.originalURL,
+    createdAt: short.createdAt,
+    expiry: short.expiry,
+    totalClicks: short.clicks.length,
+    clicks: short.clicks,
+  });
+});
+
+app.listen(5000, () => console.log('Server running on http://localhost:5000'));
