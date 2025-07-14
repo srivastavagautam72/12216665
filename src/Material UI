@@ -1,1 +1,54 @@
 
+module.exports = (req, res, next) => {
+const ShortURLSchema = new Schema({
+  originalURL: String,
+  shortcode: { type: String, unique: true },
+  expiry: Date,
+  createdAt: Date,
+  clicks: [ClickSchema],
+});
+
+module.exports = model('ShortURL', ShortURLSchema);
+
+
+// === ⚛️ Frontend: React ===
+
+// 1️⃣ Install:
+// npx create-react-app url-shortener-frontend
+// cd url-shortener-frontend
+// npm install @mui/material axios
+
+// 2️⃣ src/App.js
+import React, { useState } from 'react';
+import axios from 'axios';
+import { Container, TextField, Button, Box, Typography } from '@mui/material';
+
+function App() {
+  const [url, setUrl] = useState('');
+  const [short, setShort] = useState(null);
+
+  const shorten = async () => {
+    const res = await axios.post('http://localhost:5000/shorturls', {
+      url,
+    });
+    setShort(res.data);
+  };
+
+  return (
+    <Container>
+      <Typography variant="h4">URL Shortener</Typography>
+      <Box>
+        <TextField label="Long URL" fullWidth onChange={(e) => setUrl(e.target.value)} />
+        <Button variant="contained" onClick={shorten}>Shorten</Button>
+      </Box>
+      {short && (
+        <Box>
+          <Typography>Short Link: {short.shortLink}</Typography>
+          <Typography>Expires: {short.expiry}</Typography>
+        </Box>
+      )}
+    </Container>
+  );
+}
+
+export default App;
