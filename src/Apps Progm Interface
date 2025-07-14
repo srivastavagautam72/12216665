@@ -1,1 +1,43 @@
 
+const express = require('express');
+const mongoose = require('mongoose');
+const shortid = require('shortid');
+const cors = require('cors');
+const app = express();
+
+const logger = require('./middleware/logger');
+const ShortURL = require('./models/ShortURL');
+
+app.use(express.json());
+app.use(cors());
+app.use(logger);
+
+mongoose.connect('mongodb://localhost:27017/urlshortener', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+// Create Short URL
+app.post('/shorturls', async (req, res) => {
+  const { url, validity = 30, shortcode } = req.body;
+  if (!url) return res.status(400).json({ error: 'URL required' });
+  const code = shortcode || shortid.generate();
+
+  const exists = await ShortURL.findOne({ shortcode: code });
+  if (exists) return res.status(409).json({ error: 'Shortcode collision' });
+
+  const expiry = new Date(Date.now() + validity * 60000);
+
+  const short = new ShortURL({
+    originalURL: url,
+    shortcode: code,
+    expiry,
+    createdAt: new Date(),
+  });
+  await short.save();
+
+  res.status(201).json({
+    shortLink: `http://localhost:5000/${code}`,
+    expiry: expiry.toISOString(),
+  });
+});
